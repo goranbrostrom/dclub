@@ -1,0 +1,541 @@
+
+\documentstyle[a4wide]{article}
+\begin{document}
+\begin{verbatim}
+{$N-,E-,S+,R+,I+,V+,F+,D+,L+}
+
+UNIT EnterRes;
+
+INTERFACE
+
+USES CRT, CaGlobal, Util, EditLn;
+
+Procedure EnterResults(VAR Info : ParData);
+
+IMPLEMENTATION
+
+PROCEDURE EnterResults(VAR Info : ParData);
+
+VAR
+   Nord, Ost         : ParNrSet;
+   Poang             : INTEGER;
+   RondNo,
+   Start, Slut       : GivSet;
+   tempAntRes        : ParNrSet;
+   Active            : SET of ParNrSet;
+
+
+PROCEDURE Nulla(VAR Bricka : Giv; Nord, Ost : ParNrSet);
+
+BEGIN
+   WITH Bricka DO
+   BEGIN
+      Point[Nord] := 0;
+      Point[Ost] := 0;
+      Mot[Nord] := 0;
+      Mot[Ost] := 0;
+      Grupp[Nord] := 0;
+      Grupp[Ost] := 0;
+      NS[Nord] := FALSE;
+      NS[Ost] := FALSE;
+      Score[Nord] := 0;
+      Score[Ost] := 0;
+      IMP[Nord] := 0;
+      IMP[Ost] := 0;
+      ScoreCorr[Nord] := 0;
+      IMPCorr[Nord] := 0;
+      ScoreCorr[Ost] := 0;
+      IMPCorr[Ost] := 0;
+      IF Nord IN Active THEN
+         Active := Active - [Nord];
+      IF Ost IN Active THEN
+         Active := Active - [Ost];
+   END;  { WITH }
+END;  { Nulla }
+
+
+PROCEDURE SkrivBrickor(Start, Slut : GivSet);
+
+VAR
+   j, AntRader          : BYTE;
+   peka                 : ARRAY[ParNrSet] of ParNrSet;
+   mm, RealAntPar,
+   m, ParSlut, ParStart : ParNrSet;
+   i                    : GivSet;
+   ch                   : CHAR;
+   Bricka               : Giv;
+
+CONST
+   AntParOnRad = 9;
+
+BEGIN
+   WITH Info DO
+   BEGIN
+      RealAntPar := 0;
+      FOR m := 1 TO AntPar DO
+         IF Deltar[m] THEN
+         BEGIN
+            INC(RealAntPar);
+            peka[RealAntPar] := m;
+         END;
+      AntRader := RealAntPar DIV AntParOnRad;
+      IF ((RealAntPar MOD AntParOnRad) <> 0) THEN INC(AntRader);
+      FOR j := 1 TO AntRader DO
+      BEGIN
+         ParSlut := j * AntParOnRad;
+         ParStart := ParSlut - AntParOnRad + 1;
+         IF (j = AntRader) THEN ParSlut := RealAntPar;
+         GoToXY(1, PRED(j) * (AntBrRo + 2) + 1);
+         PutColor(MenuHiColor);
+         WRITE('Bricka ');
+         OpenDataFil;
+         IF (FileSize(DataFil) < Start) THEN
+         BEGIN
+            FillChar(Bricka, SizeOf(Bricka), 0);
+            for m := start to slut do
+            begin
+               seek(DataFil, (m-1));
+               write(DataFil, Bricka);
+            end;
+         END
+         ELSE
+         BEGIN
+            SEEK(DataFil, (Start - 1));
+            READ(DataFil, Bricka);
+         END;
+         PutColor(CurrWindow.Win.Color);
+         WITH Bricka DO
+            FOR m := ParStart TO ParSlut DO
+            BEGIN
+               mm := peka[m];
+               IF Mot[mm] = 0 THEN
+                  WRITE('   ', mm:2, '  ')
+               ELSE
+               BEGIN
+                  IF NS[mm] THEN PutColor(MenuRevColor);
+                  WRITE(' ', mm:2, '-', Mot[mm]:2, ' ');
+                  PutColor(CurrWindow.Win.Color);
+               END;
+            END;
+         PutColor(CurrWindow.Win.Color);
+         WRITELN;
+         FOR i := Start TO Slut DO
+         BEGIN
+            SEEK(DataFil, (i-1));
+            READ(DataFil, Bricka);
+            PutColor(MenuHiColor);
+            WRITE(i:3, ':   ');
+            PutColor(CurrWindow.Win.Color);
+            FOR m := ParStart TO ParSlut DO
+            BEGIN
+               mm := peka[m];
+               IF (Bricka.Mot[mm] = 0) THEN
+                  WRITE('  ---- ')
+               ELSE
+               BEGIN
+                  IF (Bricka.Grupp[mm] > 1) THEN
+                     PutColor(MenuRevColor);
+                  WRITE((Bricka.Point[mm]):6, ' ');
+                  PutColor(CurrWindow.Win.Color);
+               END;
+            END;
+            WRITELN;
+         END;
+         CLOSE(DataFil);
+      END;
+   END;  { WITH }
+   WRITELN;
+END; { SkrivBrickor }
+
+PROCEDURE UpDate(Start, Slut : GivSet);
+
+PROCEDURE PrintHelpKeys;
+
+VAR
+   oldX, oldY : BYTE;
+
+BEGIN
+   oldX := WhereX;
+   oldY := WhereY;
+   GoToXY(15, CurrWindow.Win.height);
+   PutColor(MenuRevColor);
+   WRITE('F1');
+   PutColor(CurrWindow.Win.Color);
+   WRITE(' - terg     ');
+   PutColor(MenuRevColor);
+   WRITE('ESC');
+   PutColor(CurrWindow.Win.Color);
+   WRITE(' - Radera     ');
+   PutColor(MenuRevColor);
+   WRITE('Enter');
+   PutColor(CurrWindow.Win.Color);
+   WRITE(' - Acceptera');
+   GoToXY(oldX, oldY);
+END;  { PrintHelpKeys }
+
+PROCEDURE GetParNr(VAR k : ParNrSet; VAR Result : CHAR);
+
+VAR
+   OK         : BOOLEAN;
+   InString   : Str80;
+   InReal     : REAL;
+   felpos     : INTEGER;
+   oldX,
+   oldY, P    : BYTE;
+
+BEGIN
+   PutColor(MenuRevColor);
+   oldX := WhereX;
+   oldY := WhereY;
+   WITH Info DO
+   REPEAT
+      InString := '';
+      P := 0;
+      EditLine(InString, 3, oldX, oldY, P, ['0'..'9'],
+               [CR, ESC, F1], Result);
+      CASE Result OF
+         CR   : IF (InString = '') THEN
+                   OK := FALSE
+                ELSE
+                BEGIN
+                   VAL(InString, k, felpos);
+                   IF Deltar[k] THEN
+                   BEGIN
+                      IF k IN Active THEN
+                      BEGIN
+                         ChangeCursor(OFF);
+                         IF Prompter(NumText(k) + ' frekommer tv gnger.'
+                                      + ' Fortstta nd') THEN
+                            OK := TRUE
+                         ELSE
+                            OK := FALSE;
+                         ChangeCursor(ON);
+                         PrintHelpKeys;
+                         PutColor(MenuRevColor);
+                      END
+                      ELSE
+                      BEGIN
+                         Active := Active + [k];
+                         OK := TRUE;
+                      END;
+                   END
+                   ELSE
+                   BEGIN
+                      ChangeCursor(OFF);
+                      Message('Par nummer ' + NumText(k) +
+                              ' deltar ej i denna tvling');
+                      ChangeCursor(ON);
+                      PrintHelpKeys;
+                      PutColor(MenuRevColor);
+                      OK := FALSE;
+                   END
+                END;
+         ESC,
+         F1   : OK := TRUE;
+      END;  { CASE }
+   UNTIL OK;
+   PutColor(CurrWindow.Win.Color);
+END;  { GetParNr }
+
+PROCEDURE GivePoints(VAR Bricka : Giv; VAR Result : CHAR;
+                     VAR AllGrupp : BYTE);
+
+VAR
+   InString   : Str80;
+   InReal     : REAL;
+   oldX, P,
+   oldY       : BYTE;
+   felpos     : INTEGER;
+
+BEGIN
+   oldX := WhereX;
+   oldY := WhereY;
+   felpos := 0;
+   REPEAT
+      PutColor(MenuRevColor);
+      InString := '';
+      P := 0;
+      EditLine(InString, 5, oldX, oldY, P, ['-', '0'..'9'],
+               [ESC, UpKey, DownKey, CR, F1], Result);
+      PutColor(CurrWindow.Win.Color);
+      IF Result IN [CR, F1] THEN
+      BEGIN
+         VAL(InString, Poang, felpos);
+         IF (Poang MOD 10) <> 0 THEN
+         BEGIN
+            Beep;
+            Result := NULL;
+         END;
+      END;
+   UNTIL (Result IN [ESC, UpKey, DownKey, CR, F1]) AND (felpos = 0);
+   WITH Bricka DO
+   BEGIN
+      CASE Result OF
+       CR, F1    : BEGIN
+                      Point[Nord] := Poang;
+                      Point[Ost] := -Poang;
+                      Grupp[Nord] := AllGrupp;
+                      Grupp[Ost] := AllGrupp;
+                      Mot[Nord] := Ost;
+                      Mot[Ost] := Nord;
+                      NS[Nord] := TRUE;
+                      NS[Ost] := FALSE;
+                   END;
+         ESC     : BEGIN
+                      Nulla(Bricka, Nord, Ost);
+                   END;
+      END;  { CASE }
+   END;  { WITH }
+END;  { GivePoints }
+
+
+PROCEDURE OutGruppText(VAR AllGrupp : BYTE);
+
+VAR
+   oldX, oldY : BYTE;
+
+BEGIN
+   oldX := WhereX;
+   oldY := WhereY;
+   GoToXY(5, CurrWindow.Win.Height - 1);
+   WRITE('Hgre Grupp ');
+   PutColor(MenuRevColor);
+   WRITE(#24);
+   PutColor(CurrWindow.Win.Color);
+   WRITE('  Lgre grupp ');
+   PutColor(MenuRevColor);
+   WRITE(#25);
+   PutColor(CurrWindow.Win.Color);
+   WRITE('    Nuvarande grupp = ', Allgrupp:3);
+   GoToXY(oldX, OldY);
+END;  {OutGruppText }
+
+PROCEDURE AwayGruppText;
+
+VAR
+   oldX, oldY : BYTE;
+
+BEGIN
+   oldX := WhereX;
+   oldY := WhereY;
+   GoToXY(5, CurrWindow.Win.Height - 1);
+   ClrEOL;
+   GoToXY(oldX, OldY);
+END;  { AwayGruppText }
+
+PROCEDURE GetPoints(VAR AllGrupp : BYTE; VAR Finish : BOOLEAN);
+
+VAR
+   i      : GivSet;
+   Result : CHAR;
+   oldX,
+   oldY   : BYTE;
+   Bricka : Giv;
+
+BEGIN
+   OpenDataFil;
+   SEEK(DataFil, (Start - 1));
+   READ(DataFil, Bricka);
+   IF Bricka.Mot[Ost] <> 0 THEN
+   IF Bricka.Mot[Ost] <> Nord THEN
+   BEGIN
+      FOR i := Start TO Slut DO
+      BEGIN
+         SEEK(DataFil, (i-1));
+         READ(DataFil, Bricka);
+         Nulla(Bricka, Ost, Bricka.Mot[Ost]);
+         SEEK(DataFil, (i-1));
+         WRITE(DataFil, Bricka);
+      END;
+      SkrivBrickor(Start, Slut);
+      Active := Active + [Ost];
+   END;
+   WRITELN;
+   OpenDataFil;
+   FOR i := Start TO SLUT DO
+   BEGIN
+      SEEK(DataFil, (i-1));
+      READ(DataFil, Bricka);
+      WITH Bricka DO
+      BEGIN
+         WRITELN;
+         IF (MaxGrupp < 1) THEN
+            MaxGrupp := 1;
+         AllGrupp := 1;
+         oldX := WhereX;
+         oldY := WhereY;
+         REPEAT
+            GoToXY(oldX, oldY);
+            WRITE('Bricka ', i:2, ' pong: ');
+            OutGruppText(AllGrupp);
+            GivePoints(Bricka, Result, AllGrupp);
+            IF ((Result = UpKey) AND (AllGrupp < 100)) THEN
+            BEGIN
+               INC(AllGrupp);
+               IF (MaxGrupp < AllGrupp) THEN
+                  MaxGrupp := AllGrupp;
+            END
+            ELSE
+               IF ((Result = DownKey) AND (AllGrupp > 1))THEN
+                  DEC(AllGrupp);
+         UNTIL (Result IN [ESC, CR, F1]);
+      END;
+      SEEK(DataFil, (i-1));
+      WRITE(DataFil, Bricka);
+   END;
+   CLOSE(DataFil);
+   ClrScr;
+   SkrivBrickor(Start, Slut);
+   IF (Result = F1) THEN
+      Finish := TRUE
+   ELSE
+      PrintHelpKeys;
+END;  { GetPoints }
+
+
+VAR
+   j          : ParNrSet;
+   Result     : CHAR;
+   nyX, nyY,
+   oldX, oldY : BYTE;
+   AllGrupp   : BYTE;
+   i          : GivSet;
+   OK, Finish : BOOLEAN;
+   Bricka     : Giv;
+
+BEGIN  { UpDate }
+   Active := [];
+   SkrivBrickor(Start, Slut);
+   oldX := WhereX;
+   oldY := WhereY;
+   PrintHelpKeys;
+   AllGrupp := 1;
+   REPEAT
+      GoToXY(oldX, oldY);
+      ClrEOL;
+      Finish := FALSE;
+      WRITE(' NS par Nr: ');
+      GetParNr(Nord, Result);
+      Finish := FALSE;
+      CASE Result of
+         CR      : BEGIN
+                      OpenDataFil;
+                      IF (FileSize(DataFil) < Start) THEN
+                      BEGIN
+                      END;
+                      SEEK(DataFil, (Start-1));
+                      READ(DataFil, Bricka);
+                      IF Bricka.Mot[Nord] <> 0 THEN
+                      BEGIN
+                         FOR i := Start TO Slut DO
+                         BEGIN
+                            SEEK(DataFil, (i-1));
+                            READ(DAtaFil, Bricka);
+                            Nulla(Bricka, Nord, Bricka.Mot[Nord]);
+                            SEEK(DataFil, (i-1));
+                            WRITE(DataFil, Bricka);
+                         END;
+                         nyX := WhereX;
+                         nyY := WhereY;
+                         SkrivBrickor(Start, Slut);
+                         GoToXY(nyX, nyY);
+                         Active := Active + [Nord];
+
+                      END;
+                      CLOSE(DataFil);
+                      WRITE(', V par Nr: ');
+                      GetParNr(Ost, Result);
+                      CASE Result OF
+                         CR  : IF (Nord <> Ost) THEN
+                                  GetPoints(AllGrupp, Finish)
+                               ELSE
+                                  Active := Active - [Ost];
+                         ESC : IF (Nord IN Active) THEN
+                                  Active := Active - [Nord];
+                         F1  : Finish := TRUE;
+                      END;  { Case OstResult }
+                   END;
+         ESC     : BEGIN
+                      ChangeCursor(OFF);
+                      IF Prompter('Vill du verkligen stryka hela rond ' +
+                                  NumText(RondNo)) THEN
+                      BEGIN
+                         Finish := TRUE;
+                         OpenDataFil;
+                         FOR i := Start TO Slut DO
+                         BEGIN
+                            SEEK(DataFil, (i-1));
+                            FillChar(Bricka, SizeOf(Bricka), 0);
+                            WRITE(DataFil, Bricka);
+                         END;
+                         CLOSE(DataFil);
+                      END
+                      ELSE
+                      BEGIN
+                         PrintHelpKeys;
+                         ChangeCursor(ON);
+                      END;
+                   END;
+         F1      : Finish := TRUE;
+      END;  { Case NordResult }
+   UNTIL Finish;
+   FOR i := Start TO Slut DO
+   BEGIN
+      OpenDataFil;
+      SEEK(DataFil, (i-1));
+      READ(DataFil, Bricka);
+      WITH Bricka DO
+      BEGIN
+         MaxGrupp := 1;
+         FOR j := 1 TO Info.AntPar DO
+            IF (MaxGrupp < Grupp[j]) THEN MaxGrupp := Grupp[j];
+      END;
+      CLOSE(DataFil);
+      UpDatePoints(Bricka, i, Info);
+   END;
+END;  { UpDate }
+
+VAR
+   InString   : Str80;
+   InReal     : REAL;
+   Result     : CHAR;
+   oldX, oldY : BYTE;
+
+BEGIN  { EnterResults }
+   IF (Info.AntRond = 0) THEN
+   BEGIN
+      Message('Ls in parnamnen frst');
+      EXIT;
+   END;
+   FullScreenWindow.MakeWin;
+   ChangeCursor(ON);
+   ClrScr;
+   Nord := 0;
+   Ost := 0;
+   Poang := 0;
+   oldX := WhereX;
+   oldY := WhereY;
+   WITH Info DO
+   BEGIN
+      REPEAT
+         GoToXY(oldX, oldY);
+         WRITE(' ROND Nummer: ');
+         InKey(WhereX, WhereY, 2, 'B', 'N', InString, InReal, Result);
+         RondNo := TRUNC(InReal);
+         IF NOT RondNo IN [1..AntRond] THEN Beep;
+      UNTIL (Result = NULL) AND (RondNo IN [1..AntRond]);
+      Slut := AntBrRo * RondNo;
+      Start := Slut - AntBrRo + 1;
+   END;  { WITH Info }
+   UpDate(Start, Slut);
+   UpDateFiles(Info);
+   FullScreenWindow.MakeWin;
+   HalfScreenWindow.MakeWin;
+   ChangeCursor(OFF);
+END;  { EnterResults }
+
+BEGIN
+
+END.  { UNIT EnterRes }
+\end{verbatim}
+\end{document}kloker[14] ~/bridge % 

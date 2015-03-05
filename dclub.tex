@@ -14,9 +14,13 @@
 \pagestyle{fancyplain}
 \renewcommand{\chaptermark}[1]{\markboth{#1}{#1}}
 
-\newcommand{\version}{\bf Version 0.9}
+\usepackage{enumitem}
 
-\newcommand{\datum}{\small 30 augusti 2014}
+\setlist[description]{noitemsep}
+
+\newcommand{\version}{\bf Version 0.12}
+
+\newcommand{\datum}{\small 5 mars 2015}
 
 
 \rhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\thepage}}
@@ -52,8 +56,8 @@
 \pagenumbering{arabic}
 
 
-\rhead[\fancyplain{}{\bf\thechapter:\thepage}] 
-{\fancyplain{}{\bf\large\thechapter:\thepage}}
+%\rhead[\fancyplain{}{\bf\thechapter:\thepage}] 
+%{\fancyplain{}{\bf\large\thechapter:\thepage}}
 
 \setcounter{chapter}{-1}
 
@@ -61,39 +65,39 @@
 
 \include{intro} 
 
-\setcounter{page}{1} 
+%\setcounter{page}{1} 
 
 \include{bal} 
 
-\setcounter{page}{1} 
+%\setcounter{page}{1} 
 
 \include{club} 
 
-\setcounter{page}{1} 
+%\setcounter{page}{1} 
 
 \include{diamond} 
 
-\setcounter{page}{1} 
+%\setcounter{page}{1} 
 
 \include{major} 
 
-\setcounter{page}{1} 
+%\setcounter{page}{1} 
 
 \include{dubmajor} 
 
-\setcounter{page}{1} 
+%\setcounter{page}{1} 
 
 \include{twoopen}
 
- \setcounter{page}{1} 
+%\setcounter{page}{1} 
 
 \include{passad}
 
- \setcounter{page}{1} 
+ %\setcounter{page}{1} 
 
 \include{defence}
 
-\setcounter{page}{1}
+%\setcounter{page}{1}
 
 \include{slam}
 \end{document}

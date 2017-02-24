@@ -1,5 +1,5 @@
 \documentclass[a4paper,11pt]{report}
-\usepackage[swedish]{babel}
+%\usepackage[swedish]{babel}
 %\usepackage[T1]{fontenc}
 \usepackage{fancyheadings}
 \usepackage{longtable}
@@ -16,11 +16,14 @@
 
 \usepackage{enumitem}
 
+\usepackage[hidelinks]{hyperref}
+%\hypersetup{linktocpage}
+
 \setlist[description]{noitemsep}
 
-\newcommand{\version}{\bf Version 0.13}
+\newcommand{\version}{\bf Version 0.15.2}
 
-\newcommand{\datum}{\small 11 april 2015}
+\newcommand{\datum}{\small 24 februari 2017}
 
 
 \rhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\thepage}}
@@ -71,7 +74,10 @@
 
 %\setcounter{page}{1} 
 
-\include{club} 
+%\include{club} 
+
+%\setcounter{page}{1} 
+\include{club2} 
 
 %\setcounter{page}{1} 
 

@@ -1,3 +1,5 @@
+# D-club
+
 These LaTeX files contain the Bridge bidding system 'D-club', inventor
 Göran Broström (myself): gb@carlslid.se
 
